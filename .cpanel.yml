@@ -1,0 +1,15 @@
+---
+deployment:
+  tasks:
+    # Copy all project files to the deployment directory
+    - export DEPLOYPATH=$HOME/dangts_website
+    - /bin/cp -R . $DEPLOYPATH
+    # Remove files that should not be on the server
+    - /bin/rm -rf $DEPLOYPATH/.git
+    - /bin/rm -rf $DEPLOYPATH/node_modules
+    - /bin/rm -rf $DEPLOYPATH/.next
+    - /bin/rm -rf $DEPLOYPATH/.env.local
+    # Install production dependencies only
+    - cd $DEPLOYPATH && npm install --production
+    # Build the Next.js application
+    - cd $DEPLOYPATH && npm run build
