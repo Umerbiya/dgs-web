@@ -1,27 +1,24 @@
 // server.js — Custom entry point required by cPanel Phusion Passenger
-// Passenger looks for this file and manages the Node.js process lifecycle.
-const { createServer } = require('http');
-const { parse } = require('url');
-const next = require('next');
+// This script bridges cPanel's Passenger App Manager with Next.js's standalone build.
 
-const dev = process.env.NODE_ENV !== 'production';
-const hostname = process.env.HOST || 'localhost';
-const port = parseInt(process.env.PORT || '3000', 10);
+const path = require('path');
+const fs = require('fs');
 
-const app = next({ dev, hostname, port });
-const handle = app.getRequestHandler();
+// Passenger sets the port via process.env.PORT. Default to 3000 if not set.
+process.env.PORT = process.env.PORT || '3000';
+// Enforce production mode
+process.env.NODE_ENV = 'production';
 
-app.prepare().then(() => {
-  createServer(async (req, res) => {
-    try {
-      const parsedUrl = parse(req.url, true);
-      await handle(req, res, parsedUrl);
-    } catch (err) {
-      console.error('Error occurred handling', req.url, err);
-      res.statusCode = 500;
-      res.end('internal server error');
-    }
-  }).listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port} [${process.env.NODE_ENV}]`);
-  });
-});
+// The path to the Next.js standalone server
+const standaloneServerPath = path.join(__dirname, '.next', 'standalone', 'server.js');
+
+if (!fs.existsSync(standaloneServerPath)) {
+  console.error('ERROR: Standalone server not found!');
+  console.error('Make sure you have run `npm run build` and have `output: "standalone"` in your next.config.ts');
+  process.exit(1);
+}
+
+// Next.js standalone server handles the HTTP server creation and routing. 
+// Note: It internally calls `process.chdir(__dirname)` which changes the working directory
+// to `.next/standalone`. This requires that static assets are copied inside the standalone folder.
+require(standaloneServerPath);
